@@ -91,7 +91,7 @@ FrameCollectorDelegate, HTTPHandlerDelegate {
         var pointer = [UInt8](repeating: 0, count: capacity)
         writeUint16(&pointer, offset: 0, value: closeCode)
         let payload = Data(bytes: pointer, count: MemoryLayout<UInt16>.size)
-        write(data: payload, opcode: .connectionClose, completion: { [weak self] in
+        write(data: payload, opcode: .connectionClose, completion: { [weak self] error in
             self?.reset()
             self?.forceStop()
         })
@@ -105,12 +105,12 @@ FrameCollectorDelegate, HTTPHandlerDelegate {
         transport.disconnect()
     }
     
-    public func write(string: String, completion: (() -> ())?) {
+    public func write(string: String, completion: ((Error?) -> ())?) {
         let data = string.data(using: .utf8)!
         write(data: data, opcode: .textFrame, completion: completion)
     }
     
-    public func write(data: Data, opcode: FrameOpCode, completion: (() -> ())?) {
+    public func write(data: Data, opcode: FrameOpCode, completion: ((Error?) -> ())?) {
         writeQueue.async { [weak self] in
             guard let s = self else { return }
             s.mutex.wait()
@@ -128,8 +128,8 @@ FrameCollectorDelegate, HTTPHandlerDelegate {
             }
             
             let frameData = s.framer.createWriteFrame(opcode: opcode, payload: sendData, isCompressed: isCompressed)
-            s.transport.write(data: frameData, completion: {_ in
-                completion?()
+            s.transport.write(data: frameData, completion: { error in
+                completion?(error)
             })
         }
     }
