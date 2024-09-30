@@ -26,6 +26,7 @@ import Network
 
 public enum TCPTransportError: Error {
     case invalidRequest
+    case noConnection
 }
 
 @available(macOS 10.14, iOS 12.0, watchOS 5.0, tvOS 12.0, *)
@@ -97,7 +98,11 @@ public class TCPTransport: Transport {
     }
     
     public func write(data: Data, completion: @escaping ((Error?) -> ())) {
-        connection?.send(content: data, completion: .contentProcessed { (error) in
+        guard let connection else {
+            completion(TCPTransportError.noConnection)
+            return
+        }
+        connection.send(content: data, completion: .contentProcessed { (error) in
             completion(error)
         })
     }
